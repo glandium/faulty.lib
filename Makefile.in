@@ -1,0 +1,12 @@
+all: all-build
+
+clean: all-clean
+
+all-%:
+	$(MAKE) -C linker $*
+	$(MAKE) -C tests $*
+
+check:
+	$(MAKE) -C tests $@
+
+.PHONY: all clean check
