@@ -1,0 +1,19 @@
+Faulty.lib is a dynamic linker with the ability to load libraries
+from Zip archives. At the moment, it only works on ELF Linux systems.
+
+You can build it with the following commands:
+  autoreconf
+  automake -a -c  (ignore any error message, it's only used to copy
+                   config.guess and config.sub)
+  ./configure
+  make
+
+Automated tests can be run with `make check'.
+
+The result of a build is a static library that provides __wrap_dlopen,
+__wrap_dlerror, __wrap_dlsym, __wrap_dlclose, __wrap_dladdr functions
+with the same prototypes as the dl* family of functions.
+
+Loading a library from a Zip archive is achieved by passing a specially
+crafted path name to __wrap_dlopen.
+Its form is `/path/to/file.zip!/subdir/library.so'.
