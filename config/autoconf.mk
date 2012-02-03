@@ -1,0 +1,6 @@
+MOZ_LINKER = 1
+ZLIBS_LIBS = -lz
+
+LDFLAGS = -ldl
+CXXFLAGS = -g -O2
+RANLIB = ranlib
