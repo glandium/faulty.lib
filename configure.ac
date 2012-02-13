@@ -18,7 +18,8 @@ LDFLAGS="${LDFLAGS} -ldl"
 AC_CHECK_FUNCS([dladdr])
 AC_CONFIG_FILES([linker/Makefile
                  tests/Makefile
+                 mozilla/Makefile
                  Makefile
                  config/autoconf.mk])
 AC_OUTPUT
-sed -i 's,^DEPTH\t\t= ../..,DEPTH\t\t= ..,' linker/Makefile tests/Makefile
+sed -i 's,^DEPTH\t\t= ../..,DEPTH\t\t= ..,' linker/Makefile tests/Makefile mozilla/Makefile
