@@ -3,8 +3,6 @@ from Zip archives. At the moment, it only works on ELF Linux systems.
 
 You can build it with the following commands:
   autoreconf
-  automake -a -c  (ignore any error message, it's only used to copy
-                   config.guess and config.sub)
   ./configure
   make
 
