@@ -190,41 +190,29 @@ public:
     ioctl(fd, ASHMEM_SET_NAME, str);
     if (ioctl(fd, ASHMEM_SET_SIZE, length))
       return NULL;
-
-    /* The Gecko crash reporter is confused by adjacent memory mappings of
-     * the same file. On Android, subsequent mappings are growing in memory
-     * address, and chances are we're going to map from the same file
-     * descriptor right away. Allocate one page more than requested so that
-     * there is a gap between this mapping and the subsequent one. */
-    void *buf = ::mmap(NULL, length + PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (buf != MAP_FAILED) {
-      /* Actually create the gap with anonymous memory */
-      ::mmap(reinterpret_cast<char *>(buf) + ((length + PAGE_SIZE) & PAGE_MASK),
-             PAGE_SIZE, PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS,
-             -1, 0);
-      debug("Decompression buffer of size %d in ashmem \"%s\", mapped @%p",
-            length, str, buf);
-      return new _MappableBuffer(fd.forget(), buf, length);
-    }
 #else
     /* On Linux, use /dev/shm as base directory for temporary files, assuming
      * it's on tmpfs */
     /* TODO: check that /dev/shm is tmpfs */
-    char path[256];
-    sprintf(path, "/dev/shm/%s.XXXXXX", name);
-    fd = mkstemp(path);
+    char str[256];
+    sprintf(str, "/dev/shm/%s.XXXXXX", name);
+    fd = mkstemp(str);
     if (fd == -1)
       return NULL;
-    unlink(path);
+    unlink(str);
     ftruncate(fd, length);
+#endif
 
     void *buf = ::mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (buf != MAP_FAILED) {
-      debug("Decompression buffer of size %ld in \"%s\", mapped @%p",
-            length, path, buf);
+      debug("Decompression buffer of size %ld in "
+#ifdef ANDROID
+            "ashmem "
+#endif
+            "\"%s\", mapped @%p",
+            length, str, buf);
       return new _MappableBuffer(fd.forget(), buf, length);
     }
-#endif
     return NULL;
   }
 
