@@ -3,10 +3,26 @@
 
 AC_PREREQ([2.68])
 AC_INIT(faulty.lib, 0.0.1)
-AC_CANONICAL_SYSTEM
+AC_CANONICAL_HOST
+AC_CANONICAL_BUILD
 AC_CONFIG_SRCDIR([linker/ElfLoader.h])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_CXX
+AC_PROG_RANLIB
+AC_LANG_CPLUSPLUS
+
+if test -z "${BUILDCXX}"; then
+  if test "${build}" = "${host}"; then
+    BUILDCXX="${CXX}"
+  elif test -n "${build_alias}"; then
+    AC_CHECK_PROGS([BUILDCXX], [${build_alias}-g++])
+  else
+    AC_CHECK_PROGS([BUILDCXX], [g++])
+  fi
+fi
+if test -z "${BUILDCXX}"; then
+  AC_MSG_ERROR([C++ compiler for build not found.])
+fi
 
 case "$host" in
 *-android*|*-linuxandroid*)
