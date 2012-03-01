@@ -15,3 +15,18 @@ with the same prototypes as the dl* family of functions.
 Loading a library from a Zip archive is achieved by passing a specially
 crafted path name to __wrap_dlopen.
 Its form is `/path/to/file.zip!/subdir/library.so'.
+
+On-demand decompression of the libraries is also possible if, instead
+of being normally zipped, they are first "szipped", then stored in the
+Zip archive. So, instead of doing the following to put a library in the
+Zip archive:
+  zip file.zip library.so
+
+you first need to use the "szip" tool from the linker/ directory:
+  linker/szip library.so library.so.new && mv library.so.new library.so
+
+and store the resulting file in the zip:
+  zip -0 file.zip library.so
+
+The library may then be loaded with the same path form as if it were
+normally compressed.
