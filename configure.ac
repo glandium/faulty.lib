@@ -32,6 +32,13 @@ case "$host" in
 esac
 LDFLAGS="${LDFLAGS} -ldl"
 AC_CHECK_FUNCS([dladdr])
+AC_CHECK_SIZEOF([void *])
+if test "${ac_cv_sizeof_void_p}" = 8; then
+  AC_DEFINE([HAVE_64BIT_OS], 1, Define to 1 when building for 64-bit OS)
+elif test "${ac_cv_sizeof_void_p}" != 4; then
+  AC_MSG_ERROR([Unsupported pointer size ${ac_cv_sizeof_void_p}])
+fi
+
 AC_CONFIG_FILES([linker/Makefile
                  tests/Makefile
                  mozilla/Makefile
