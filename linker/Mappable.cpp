@@ -230,13 +230,6 @@ public:
     return ::mmap(const_cast<void *>(addr), length, prot, flags, fd, offset);
   }
 
-#ifdef ANDROID
-  ~_MappableBuffer() {
-    /* Free the additional page we allocated. See _MappableBuffer::Create */
-    ::munmap(this + ((GetLength() + PAGE_SIZE) & ~(PAGE_SIZE - 1)), PAGE_SIZE);
-  }
-#endif
-
 private:
   _MappableBuffer(int fd, void *buf, size_t length)
   : MappedPtr(buf, length), fd(fd) { }
