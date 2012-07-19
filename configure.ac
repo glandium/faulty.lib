@@ -41,7 +41,6 @@ fi
 
 AC_CONFIG_FILES([linker/Makefile
                  tests/Makefile
-                 mozilla/Makefile
                  Makefile
                  config/autoconf.mk])
 AC_OUTPUT

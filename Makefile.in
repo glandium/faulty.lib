@@ -3,7 +3,6 @@ all: all-build
 clean: all-clean
 
 all-%:
-	$(MAKE) -C mozilla $*
 	$(MAKE) -C linker $*
 	$(MAKE) -C tests $*
 
