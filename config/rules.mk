@@ -18,7 +18,7 @@ EXPAND_LIBNAME_PATH = $(foreach lib,$(1),$(2)/lib$(lib).a)
 build: $(TARGETS)
 
 clean:
-	rm -f $(TARGETS) $(OBJS)
+	rm -f $(TARGETS) $(OBJS) $(HOSTOBJS)
 
 $(SIMPLE_PROGRAMS): %: %.o $(LIBS)
 	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS) $(EXTRA_LIBS)
