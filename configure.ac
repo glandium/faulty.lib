@@ -44,4 +44,4 @@ AC_CONFIG_FILES([linker/Makefile
                  Makefile
                  config/autoconf.mk])
 AC_OUTPUT
-sed -i 's,^DEPTH\t\t= ../..,DEPTH\t\t= ..,' linker/Makefile tests/Makefile mozilla/Makefile
+sed -i 's,^DEPTH\t\t= ../..,DEPTH\t\t= ..,' linker/Makefile tests/Makefile
