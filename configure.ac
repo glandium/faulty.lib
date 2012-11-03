@@ -39,9 +39,11 @@ elif test "${ac_cv_sizeof_void_p}" != 4; then
   AC_MSG_ERROR([Unsupported pointer size ${ac_cv_sizeof_void_p}])
 fi
 
+DEPTH=..
+AC_SUBST(DEPTH)
+
 AC_CONFIG_FILES([linker/Makefile
                  tests/Makefile
                  Makefile
                  config/autoconf.mk])
 AC_OUTPUT
-sed -i 's,^DEPTH\t\t= ../..,DEPTH\t\t= ..,' linker/Makefile tests/Makefile
