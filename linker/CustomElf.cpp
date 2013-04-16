@@ -733,3 +733,13 @@ CustomElf::CallFini()
   if (fini)
     CallFunction(fini);
 }
+
+Mappable *
+CustomElf::GetMappable() const
+{
+  if (!mappable)
+    return NULL;
+  if (mappable->GetKind() == Mappable::MAPPABLE_EXTRACT_FILE)
+    return mappable;
+  return ElfLoader::GetMappableFromPath(GetPath());
+}

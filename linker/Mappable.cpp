@@ -65,6 +65,13 @@ MappableFile::finalize()
   fd = -1;
 }
 
+size_t
+MappableFile::GetLength() const
+{
+  struct stat st;
+  return fstat(fd, &st) ? 0 : st.st_size;
+}
+
 Mappable *
 MappableExtractFile::Create(const char *name, Zip *zip, Zip::Stream *stream)
 {
@@ -322,6 +329,12 @@ MappableDeflate::finalize()
   zip = NULL;
 }
 
+size_t
+MappableDeflate::GetLength() const
+{
+  return buffer->GetLength();
+}
+
 Mappable *
 MappableSeekableZStream::Create(const char *name, Zip *zip,
                                 Zip::Stream *stream)
@@ -522,4 +535,10 @@ MappableSeekableZStream::stats(const char *when, const char *name) const
       j = 0;
     }
   }
+}
+
+size_t
+MappableSeekableZStream::GetLength() const
+{
+  return buffer->GetLength();
 }
