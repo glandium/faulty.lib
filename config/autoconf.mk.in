@@ -1,5 +1,5 @@
 MOZ_LINKER = 1
-ZLIBS_LIBS = -lz
+ZLIB_LIBS = -lz
 
 LDFLAGS = @LDFLAGS@
 CXXFLAGS = -std=gnu++0x -fno-rtti -fno-exceptions @CXXFLAGS@
