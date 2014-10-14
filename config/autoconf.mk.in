@@ -3,6 +3,7 @@ ZLIB_LIBS = -lz
 
 LDFLAGS = @LDFLAGS@
 CXXFLAGS = -std=gnu++0x -fno-rtti -fno-exceptions @CXXFLAGS@
+BUILDCXXFLAGS = -std=gnu++0x @BUILDCXXFLAGS@
 CXX = @CXX@
 BUILDCXX = @BUILDCXX@
 RANLIB = @RANLIB@

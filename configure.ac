@@ -23,6 +23,7 @@ fi
 if test -z "${BUILDCXX}"; then
   AC_MSG_ERROR([C++ compiler for build not found.])
 fi
+AC_SUBST(BUILDCXXFLAGS)
 
 case "$host" in
 *-android*|*-linuxandroid*)
