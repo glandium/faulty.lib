@@ -30,7 +30,7 @@ case "$host" in
   LDFLAGS="${LDFLAGS} -llog"
   ;;
 esac
-LDFLAGS="${LDFLAGS} -ldl"
+LDFLAGS="${LDFLAGS} -ldl -pthread"
 AC_CHECK_FUNCS([dladdr])
 AC_CHECK_SIZEOF([void *])
 if test "${ac_cv_sizeof_void_p}" = 8; then
