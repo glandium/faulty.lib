@@ -1,12 +1,13 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* Implementations of runtime and static assertion macros for C and C++. */
 
-#ifndef mozilla_Assertions_h_
-#define mozilla_Assertions_h_
+#ifndef mozilla_Assertions_h
+#define mozilla_Assertions_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/Compiler.h"
@@ -39,44 +40,24 @@
 #endif
 
 /*
- * MOZ_STATIC_ASSERT may be used to assert a condition *at compile time*.  This
- * can be useful when you make certain assumptions about what must hold for
+ * MOZ_STATIC_ASSERT may be used to assert a condition *at compile time* in C.
+ * In C++11, static_assert is provided by the compiler to the same effect.
+ * This can be useful when you make certain assumptions about what must hold for
  * optimal, or even correct, behavior.  For example, you might assert that the
  * size of a struct is a multiple of the target architecture's word size:
  *
  *   struct S { ... };
+ *   // C
  *   MOZ_STATIC_ASSERT(sizeof(S) % sizeof(size_t) == 0,
  *                     "S should be a multiple of word size for efficiency");
+ *   // C++11
+ *   static_assert(sizeof(S) % sizeof(size_t) == 0,
+ *                 "S should be a multiple of word size for efficiency");
  *
  * This macro can be used in any location where both an extern declaration and a
  * typedef could be used.
- *
- * Be aware of the gcc 4.2 concerns noted further down when writing patches that
- * use this macro, particularly if a patch only bounces on OS X.
  */
-#ifdef __cplusplus
-#  if defined(__clang__)
-#    ifndef __has_extension
-#      define __has_extension __has_feature /* compatibility, for older versions of clang */
-#    endif
-#    if __has_extension(cxx_static_assert)
-#      define MOZ_STATIC_ASSERT(cond, reason)    static_assert((cond), reason)
-#    endif
-#  elif defined(__GNUC__)
-#    if (defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L)
-#      define MOZ_STATIC_ASSERT(cond, reason)    static_assert((cond), reason)
-#    endif
-#  elif defined(_MSC_VER)
-#    if _MSC_VER >= 1600 /* MSVC 10 */
-#      define MOZ_STATIC_ASSERT(cond, reason)    static_assert((cond), reason)
-#    endif
-#  elif defined(__HP_aCC)
-#    if __HP_aCC >= 62500 && defined(_HP_CXX0x_SOURCE)
-#      define MOZ_STATIC_ASSERT(cond, reason)    static_assert((cond), reason)
-#    endif
-#  endif
-#endif
-#ifndef MOZ_STATIC_ASSERT
+#ifndef __cplusplus
    /*
     * Some of the definitions below create an otherwise-unused typedef.  This
     * triggers compiler warnings with some versions of gcc, so mark the typedefs
@@ -124,9 +105,11 @@
 #    define MOZ_STATIC_ASSERT(cond, reason) \
        extern void MOZ_STATIC_ASSERT_GLUE(moz_static_assert, __LINE__)(int arg[(cond) ? 1 : -1]) MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE
 #  endif
-#endif
 
 #define MOZ_STATIC_ASSERT_IF(cond, expr, reason)  MOZ_STATIC_ASSERT(!(cond) || (expr), reason)
+#else
+#define MOZ_STATIC_ASSERT_IF(cond, expr, reason)  static_assert(!(cond) || (expr), reason)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -197,7 +180,7 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 #  ifdef __cplusplus
 #    define MOZ_REALLY_CRASH() \
        do { \
-         __debugbreak(); \
+         ::__debugbreak(); \
          *((volatile int*) NULL) = 123; \
          ::TerminateProcess(::GetCurrentProcess(), 3); \
          ::MOZ_NoReturn(); \
@@ -292,49 +275,52 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
  *              "we already set [[PrimitiveThis]] for this String object");
  *
  * MOZ_ASSERT has no effect in non-debug builds.  It is designed to catch bugs
- * *only* during debugging, not "in the field".
+ * *only* during debugging, not "in the field". If you want the latter, use
+ * MOZ_RELEASE_ASSERT, which applies to non-debug builds as well.
  */
+
+/* First the single-argument form. */
+#define MOZ_ASSERT_HELPER1(expr) \
+   do { \
+     if (MOZ_UNLIKELY(!(expr))) { \
+       MOZ_ReportAssertionFailure(#expr, __FILE__, __LINE__); \
+       MOZ_REALLY_CRASH(); \
+     } \
+   } while (0)
+/* Now the two-argument form. */
+#define MOZ_ASSERT_HELPER2(expr, explain) \
+   do { \
+     if (MOZ_UNLIKELY(!(expr))) { \
+       MOZ_ReportAssertionFailure(#expr " (" explain ")", __FILE__, __LINE__); \
+       MOZ_REALLY_CRASH(); \
+     } \
+   } while (0)
+/* And now, helper macrology up the wazoo. */
+/*
+ * Count the number of arguments passed to MOZ_ASSERT, very carefully
+ * tiptoeing around an MSVC bug where it improperly expands __VA_ARGS__ as a
+ * single token in argument lists.  See these URLs for details:
+ *
+ *   http://connect.microsoft.com/VisualStudio/feedback/details/380090/variadic-macro-replacement
+ *   http://cplusplus.co.il/2010/07/17/variadic-macro-to-count-number-of-arguments/#comment-644
+ */
+#define MOZ_COUNT_ASSERT_ARGS_IMPL2(_1, _2, count, ...) \
+   count
+#define MOZ_COUNT_ASSERT_ARGS_IMPL(args) \
+       MOZ_COUNT_ASSERT_ARGS_IMPL2 args
+#define MOZ_COUNT_ASSERT_ARGS(...) \
+   MOZ_COUNT_ASSERT_ARGS_IMPL((__VA_ARGS__, 2, 1, 0))
+/* Pick the right helper macro to invoke. */
+#define MOZ_ASSERT_CHOOSE_HELPER2(count) MOZ_ASSERT_HELPER##count
+#define MOZ_ASSERT_CHOOSE_HELPER1(count) MOZ_ASSERT_CHOOSE_HELPER2(count)
+#define MOZ_ASSERT_CHOOSE_HELPER(count) MOZ_ASSERT_CHOOSE_HELPER1(count)
+/* The actual macros. */
+#define MOZ_ASSERT_GLUE(x, y) x y
+#define MOZ_RELEASE_ASSERT(...) \
+   MOZ_ASSERT_GLUE(MOZ_ASSERT_CHOOSE_HELPER(MOZ_COUNT_ASSERT_ARGS(__VA_ARGS__)), \
+                   (__VA_ARGS__))
 #ifdef DEBUG
-   /* First the single-argument form. */
-#  define MOZ_ASSERT_HELPER1(expr) \
-     do { \
-       if (MOZ_UNLIKELY(!(expr))) { \
-         MOZ_ReportAssertionFailure(#expr, __FILE__, __LINE__); \
-         MOZ_REALLY_CRASH(); \
-       } \
-     } while (0)
-   /* Now the two-argument form. */
-#  define MOZ_ASSERT_HELPER2(expr, explain) \
-     do { \
-       if (MOZ_UNLIKELY(!(expr))) { \
-         MOZ_ReportAssertionFailure(#expr " (" explain ")", __FILE__, __LINE__); \
-         MOZ_REALLY_CRASH(); \
-       } \
-     } while (0)
-   /* And now, helper macrology up the wazoo. */
-   /*
-    * Count the number of arguments passed to MOZ_ASSERT, very carefully
-    * tiptoeing around an MSVC bug where it improperly expands __VA_ARGS__ as a
-    * single token in argument lists.  See these URLs for details:
-    *
-    *   http://connect.microsoft.com/VisualStudio/feedback/details/380090/variadic-macro-replacement
-    *   http://cplusplus.co.il/2010/07/17/variadic-macro-to-count-number-of-arguments/#comment-644
-    */
-#  define MOZ_COUNT_ASSERT_ARGS_IMPL2(_1, _2, count, ...) \
-     count
-#  define MOZ_COUNT_ASSERT_ARGS_IMPL(args) \
-	 MOZ_COUNT_ASSERT_ARGS_IMPL2 args
-#  define MOZ_COUNT_ASSERT_ARGS(...) \
-     MOZ_COUNT_ASSERT_ARGS_IMPL((__VA_ARGS__, 2, 1, 0))
-   /* Pick the right helper macro to invoke. */
-#  define MOZ_ASSERT_CHOOSE_HELPER2(count) MOZ_ASSERT_HELPER##count
-#  define MOZ_ASSERT_CHOOSE_HELPER1(count) MOZ_ASSERT_CHOOSE_HELPER2(count)
-#  define MOZ_ASSERT_CHOOSE_HELPER(count) MOZ_ASSERT_CHOOSE_HELPER1(count)
-   /* The actual macro. */
-#  define MOZ_ASSERT_GLUE(x, y) x y
-#  define MOZ_ASSERT(...) \
-     MOZ_ASSERT_GLUE(MOZ_ASSERT_CHOOSE_HELPER(MOZ_COUNT_ASSERT_ARGS(__VA_ARGS__)), \
-                     (__VA_ARGS__))
+#  define MOZ_ASSERT(...) MOZ_RELEASE_ASSERT(__VA_ARGS__)
 #else
 #  define MOZ_ASSERT(...) do { } while(0)
 #endif /* DEBUG */
@@ -455,4 +441,4 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 #  define MOZ_ALWAYS_FALSE(expr)     ((void)(expr))
 #endif
 
-#endif /* mozilla_Assertions_h_ */
+#endif /* mozilla_Assertions_h */
