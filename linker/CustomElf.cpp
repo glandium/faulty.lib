@@ -15,6 +15,16 @@ using namespace mozilla;
 
 /* TODO: Fill ElfLoader::Singleton.lastError on errors. */
 
+/* Function used to report library mappings from the custom linker to Gecko
+ * crash reporter */
+#ifdef ANDROID
+extern "C" {
+  void report_mapping(char *name, void *base, uint32_t len, uint32_t offset);
+}
+#else
+#define report_mapping(...)
+#endif
+
 const Ehdr *Ehdr::validate(const void *buf)
 {
   if (!buf || buf == MAP_FAILED)
@@ -188,6 +198,9 @@ CustomElf::Load(Mappable *mappable, const char *path, int flags)
 
   /* We're not going to mmap anymore */
   mappable->finalize();
+
+  report_mapping(const_cast<char *>(elf->GetName()), elf->base,
+                 (max_vaddr + PAGE_SIZE - 1) & PAGE_MASK, 0);
 
   elf->l_addr = elf->base;
   elf->l_name = elf->GetPath();

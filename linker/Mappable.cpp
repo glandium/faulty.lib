@@ -181,29 +181,42 @@ public:
     ioctl(fd, ASHMEM_SET_NAME, str);
     if (ioctl(fd, ASHMEM_SET_SIZE, length))
       return NULL;
+
+    /* The Gecko crash reporter is confused by adjacent memory mappings of
+     * the same file. On Android, subsequent mappings are growing in memory
+     * address, and chances are we're going to map from the same file
+     * descriptor right away. To avoid problems with the crash reporter,
+     * create an empty anonymous page after the ashmem mapping. To do so,
+     * allocate one page more than requested, then replace the last page with
+     * an anonymous mapping. */
+    void *buf = ::mmap(NULL, length + PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (buf != MAP_FAILED) {
+      ::mmap(reinterpret_cast<char *>(buf) + ((length + PAGE_SIZE - 1) & PAGE_MASK),
+             PAGE_SIZE, PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS,
+             -1, 0);
+      DEBUG_LOG("Decompression buffer of size %d in ashmem \"%s\", mapped @%p",
+                length, str, buf);
+      return new _MappableBuffer(fd.forget(), buf, length);
+    }
 #else
     /* On Linux, use /dev/shm as base directory for temporary files, assuming
      * it's on tmpfs */
     /* TODO: check that /dev/shm is tmpfs */
-    char str[256];
-    sprintf(str, "/dev/shm/%s.XXXXXX", name);
-    fd = mkstemp(str);
+    char path[256];
+    sprintf(path, "/dev/shm/%s.XXXXXX", name);
+    fd = mkstemp(path);
     if (fd == -1)
       return NULL;
-    unlink(str);
+    unlink(path);
     ftruncate(fd, length);
-#endif
 
     void *buf = ::mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (buf != MAP_FAILED) {
-      DEBUG_LOG("Decompression buffer of size %ld in "
-#ifdef ANDROID
-            "ashmem "
-#endif
-            "\"%s\", mapped @%p",
-            length, str, buf);
+      DEBUG_LOG("Decompression buffer of size %ld in \"%s\", mapped @%p",
+                length, path, buf);
       return new _MappableBuffer(fd.forget(), buf, length);
     }
+#endif
     return NULL;
   }
 
@@ -220,6 +233,13 @@ public:
 #endif
     return ::mmap(const_cast<void *>(addr), length, prot, flags, fd, offset);
   }
+
+#ifdef ANDROID
+  ~_MappableBuffer() {
+    /* Free the additional page we allocated. See _MappableBuffer::Create */
+    ::munmap(*this + ((GetLength() + PAGE_SIZE - 1) & PAGE_MASK), PAGE_SIZE);
+  }
+#endif
 
 private:
   _MappableBuffer(int fd, void *buf, size_t length)
